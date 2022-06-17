@@ -79,6 +79,12 @@ class Player(Entity):
         self.total_mana_spent = 0   # Track total mana expended by player
         self.armour = 0  # Player armour rating can be modified by spells
 
+    def deal_damage(self, damage, ignore_armour=False):
+        if ignore_armour:
+            self.hp -= damage
+        else:
+            Entity.deal_damage(self, damage)
+
     def can_cast_with_mana(self, spell):
         return self.mana >= spell.get_mana_cost()
 
@@ -151,28 +157,31 @@ def process_input_file():
 def solve_part1(input):
     boss = deepcopy(input)
     player = Player(50, 500)
-    least_mana_for_win = conduct_fight(player, boss)
+    least_mana_for_win = conduct_fight(player, boss, False)
     return least_mana_for_win
 
 
 def solve_part2(input):
-    ()
+    boss = deepcopy(input)
+    player = Player(50, 500)
+    least_mana_for_win = conduct_fight(player, boss, True)
+    return least_mana_for_win
 
 
-def conduct_fight(player, boss):
+def conduct_fight(player, boss, hard_mode):
     """
     Conducts the fight between the player and boss, returning the least amount
     of mana the player needs to spend to still beat the boss.
     """
     min_mana = []
-    conduct_fight_recursive(player, boss, min_mana)
+    conduct_fight_recursive(player, boss, min_mana, hard_mode)
     if len(min_mana) == 1:
         return min_mana[0]
     else:
         return -1
 
 
-def conduct_fight_recursive(player, boss, min_mana):
+def conduct_fight_recursive(player, boss, min_mana, hard_mode):
     """
     Conduct one step in the fight between player and boss, making recursive
     function calls to proceed to the next step in a fight.
@@ -183,6 +192,12 @@ def conduct_fight_recursive(player, boss, min_mana):
         new_player = deepcopy(player)
         new_boss = deepcopy(boss)
         # Player turn
+        # - If in hard mode, apply damage to player before other effects
+        if hard_mode:
+            new_player.deal_damage(1, True)
+        # - Check if player is dead
+        if new_player.is_dead():    # Player loses
+            return
         # - Process player effects and check if boss is dead
         new_player.process_effects(new_boss)
         if new_boss.is_dead():  # Player wins
@@ -222,7 +237,7 @@ def conduct_fight_recursive(player, boss, min_mana):
         if new_player.is_dead():    # Player loses
             return
         # Player and boss still alive, so go to next turn
-        conduct_fight_recursive(new_player, new_boss, min_mana)
+        conduct_fight_recursive(new_player, new_boss, min_mana, hard_mode)
 
 
 if __name__ == "__main__":
